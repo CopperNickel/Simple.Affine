@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Simple.Affine.Test/Simple.Affine.Test.csproj" />
+  <Project Path="Simple.Affine/Simple.Affine.csproj" />
+</Solution>
