@@ -38,6 +38,18 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
   /// </summary>
   public double Determinant => A11 * A22 - A12 * A21;
 
+  public double TranslationX => A13;
+
+  public double TranslationY => A23;
+
+  public double Angle => Math.Atan2(A21, A11);
+
+  public double ScaleX => Math.Sqrt(A11 * A11 + A22 * A22);
+
+  public double ScaleY => Determinant /  ScaleX;
+
+  public double ShearFactor => (A11 * A12 + A21 * A22) / Determinant;
+
   #endregion Properties
 
   #region Create
@@ -46,6 +58,8 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
   /// Gets the identity transformation matrix.
   /// </summary>
   public static TransformationMatrix Identity { get; } = new TransformationMatrix(1, 0, 0, 0, 1, 0);
+
+  public static TransformationMatrix Mirror { get; } = new TransformationMatrix(0, 1, 0, 1, 0, 0);
 
   /// <summary>
   /// Gets a transformation matrix that represents an error state, with all elements set to NaN.
@@ -70,9 +84,61 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
     A23 = a23;
   }
 
+  public static TransformationMatrix Rotate(double angle)
+  {
+    var (sin, cos) = Math.SinCos(angle);
+
+    return new(cos, -sin, 0, sin, cos, 0); 
+  }
+
+  public static TransformationMatrix Translate(double deltaX, double deltaY)
+  {
+    return new(1, 0, deltaX, 0, 1, deltaY);
+  }
+
+  public static TransformationMatrix Scale(double factorX, double factorY)
+  {
+    return new(factorX, 0, 0, 0, factorY, 0);
+  }
+
+  public static TransformationMatrix Shear(double factor)
+  {
+    return new(1, factor, 0, 0, 1, 0);
+  }
+
   #endregion Create
 
   #region Public Methods
+
+  public bool TryDecompose(out TransformationMatrix translation,
+                           out TransformationMatrix rotation,
+                           out TransformationMatrix shear,
+                           out TransformationMatrix scale)
+  {
+    var det = Determinant;
+
+    if (det == 0 || !double.IsFinite(det))
+    {
+      translation = Error;
+            rotation = Error;
+            shear = Error;
+            scale = Error;
+
+            return false;
+    }
+
+        var sx = Math.Sqrt(A11 * A11 + A22 * A22);
+        var theta = Math.Atan2(A21, A11);
+        var sy = det / sx;
+        var k = (A11 * A12 + A21 * A22) / det;
+
+        translation = TransformationMatrix.Translate(A13, A23);
+        rotation = TransformationMatrix.Rotate(theta);
+        shear = TransformationMatrix.Shear(k);
+        scale = TransformationMatrix.Scale(sx, sy);
+
+        return true;
+  }
 
   /// <summary>
   /// Inverses the transformation matrix if it is invertible. If the determinant is zero, returns the Error matrix.
