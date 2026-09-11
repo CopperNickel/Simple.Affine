@@ -46,7 +46,7 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
 
   public double ScaleX => Math.Sqrt(A11 * A11 + A22 * A22);
 
-  public double ScaleY => Determinant /  ScaleX;
+  public double ScaleY => Determinant / ScaleX;
 
   public double ShearFactor => (A11 * A12 + A21 * A22) / Determinant;
 
@@ -59,6 +59,9 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
   /// </summary>
   public static TransformationMatrix Identity { get; } = new TransformationMatrix(1, 0, 0, 0, 1, 0);
 
+  /// <summary>
+  /// Gets a transformation matrix that represents a mirror transformation.
+  /// </summary>
   public static TransformationMatrix Mirror { get; } = new TransformationMatrix(0, 1, 0, 1, 0, 0);
 
   /// <summary>
@@ -84,25 +87,43 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
     A23 = a23;
   }
 
-  public static TransformationMatrix Rotate(double angle)
-  {
+  /// <summary>
+  /// Creates a transformation matrix that represents a rotation by the specified angle (in radians).
+  /// </summary>
+  /// <param name="angle">The angle of rotation in radians.</param>
+  /// <returns>A transformation matrix representing the rotation.</returns>
+  public static TransformationMatrix Rotate(double angle) {
     var (sin, cos) = Math.SinCos(angle);
 
-    return new(cos, -sin, 0, sin, cos, 0); 
+    return new(cos, -sin, 0, sin, cos, 0);
   }
 
-  public static TransformationMatrix Translate(double deltaX, double deltaY)
-  {
+  /// <summary>
+  /// Creates a transformation matrix that represents a translation by the specified deltaX and deltaY values.
+  /// </summary>
+  /// <param name="deltaX">The amount of translation in the X direction.</param>
+  /// <param name="deltaY">The amount of translation in the Y direction.</param>
+  /// <returns>A transformation matrix representing the translation.</returns>
+  public static TransformationMatrix Translate(double deltaX, double deltaY) {
     return new(1, 0, deltaX, 0, 1, deltaY);
   }
 
-  public static TransformationMatrix Scale(double factorX, double factorY)
-  {
+  /// <summary>
+  /// Creates a transformation matrix that represents scaling by the specified factorX and factorY values.
+  /// </summary>
+  /// <param name="factorX">The scale factor in the X direction.</param>
+  /// <param name="factorY">The scale factor in the Y direction.</param>
+  /// <returns>A transformation matrix representing the scaling.</returns>
+  public static TransformationMatrix Scale(double factorX, double factorY) {
     return new(factorX, 0, 0, 0, factorY, 0);
   }
 
-  public static TransformationMatrix Shear(double factor)
-  {
+  /// <summary>
+  /// Creates a transformation matrix that represents shearing by the specified factor.
+  /// </summary>
+  /// <param name="factor">The shear factor.</param>
+  /// <returns>A transformation matrix representing the shearing.</returns>
+  public static TransformationMatrix Shear(double factor) {
     return new(1, factor, 0, 0, 1, 0);
   }
 
@@ -110,34 +131,40 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
 
   #region Public Methods
 
+  /// <summary>
+  /// Attempts to decompose the transformation matrix into its constituent transformations.
+  /// </summary>
+  /// <param name="translation">The translation component.</param>
+  /// <param name="rotation">The rotation component.</param>
+  /// <param name="shear">The shear component.</param>
+  /// <param name="scale">The scale component.</param>
+  /// <returns>True if the decomposition is successful; otherwise, false.</returns>
   public bool TryDecompose(out TransformationMatrix translation,
                            out TransformationMatrix rotation,
                            out TransformationMatrix shear,
-                           out TransformationMatrix scale)
-  {
+                           out TransformationMatrix scale) {
     var det = Determinant;
 
-    if (det == 0 || !double.IsFinite(det))
-    {
+    if (det == 0 || !double.IsFinite(det)) {
       translation = Error;
-            rotation = Error;
-            shear = Error;
-            scale = Error;
+      rotation = Error;
+      shear = Error;
+      scale = Error;
 
-            return false;
+      return false;
     }
 
-        var sx = Math.Sqrt(A11 * A11 + A22 * A22);
-        var theta = Math.Atan2(A21, A11);
-        var sy = det / sx;
-        var k = (A11 * A12 + A21 * A22) / det;
+    var sx = Math.Sqrt(A11 * A11 + A22 * A22);
+    var theta = Math.Atan2(A21, A11);
+    var sy = det / sx;
+    var k = (A11 * A12 + A21 * A22) / det;
 
-        translation = TransformationMatrix.Translate(A13, A23);
-        rotation = TransformationMatrix.Rotate(theta);
-        shear = TransformationMatrix.Shear(k);
-        scale = TransformationMatrix.Scale(sx, sy);
+    translation = Translate(A13, A23);
+    rotation = Rotate(theta);
+    shear = Shear(k);
+    scale = Scale(sx, sy);
 
-        return true;
+    return true;
   }
 
   /// <summary>
@@ -173,6 +200,129 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
   }
 
   #endregion Public Methods
+
+  #region Operators
+
+  /// <summary>
+  /// Multiplies two transformation matrices, resulting in a new transformation matrix that combines the effects of both.
+  /// </summary>
+  /// <param name="left">The left transformation matrix.</param>
+  /// <param name="right">The right transformation matrix.</param>
+  /// <returns>The product of the two transformation matrices.</returns>
+  public static TransformationMatrix operator *(TransformationMatrix left, TransformationMatrix right) {
+    var a11 = left.A11 * right.A11 + left.A12 * right.A21;
+    var a12 = left.A11 * right.A12 + left.A12 * right.A22;
+    var a13 = left.A11 * right.A13 + left.A12 * right.A23 + left.A13;
+    var a21 = left.A21 * right.A11 + left.A22 * right.A21;
+    var a22 = left.A21 * right.A12 + left.A22 * right.A22;
+    var a23 = left.A21 * right.A13 + left.A22 * right.A23 + left.A23;
+
+    return new TransformationMatrix(a11, a12, a13, a21, a22, a23);
+  }
+
+  /// <summary>
+  /// Multiplies a transformation matrix by a scalar value, resulting in a new transformation matrix where each element is scaled by the given scalar.
+  /// </summary>
+  /// <param name="matrix">The transformation matrix.</param>
+  /// <param name="scalar">The scalar value.</param>
+  /// <returns>The product of the transformation matrix and the scalar.</returns>
+  public static TransformationMatrix operator *(TransformationMatrix matrix, double scalar) {
+    return new TransformationMatrix(
+      matrix.A11 * scalar,
+      matrix.A12 * scalar,
+      matrix.A13 * scalar,
+      matrix.A21 * scalar,
+      matrix.A22 * scalar,
+      matrix.A23 * scalar
+    );
+  }
+
+  /// <summary>
+  /// Multiplies a scalar value by a transformation matrix, resulting in a new transformation matrix where each element is scaled by the given scalar.
+  /// </summary>
+  /// <param name="scalar">The scalar value.</param>
+  /// <param name="matrix">The transformation matrix.</param>
+  /// <returns>The product of the scalar and the transformation matrix.</returns>
+  public static TransformationMatrix operator *(double scalar, TransformationMatrix matrix) {
+    return matrix * scalar;
+  }
+
+  /// <summary>
+  /// Divides a transformation matrix by a scalar value, resulting in a new transformation matrix where each element is divided by the given scalar. If the scalar is zero, returns the Error matrix.
+  /// </summary>
+  /// <param name="matrix">The transformation matrix.</param>
+  /// <param name="scalar">The scalar value.</param>
+  /// <returns>The quotient of the transformation matrix and the scalar.</returns>
+  public static TransformationMatrix operator /(TransformationMatrix matrix, double scalar) {
+    if (scalar == 0) {
+      return Error;
+    }
+
+    return new TransformationMatrix(
+      matrix.A11 / scalar,
+      matrix.A12 / scalar,
+      matrix.A13 / scalar,
+      matrix.A21 / scalar,
+      matrix.A22 / scalar,
+      matrix.A23 / scalar
+    );
+  }
+
+  /// <summary>
+  /// Divides a scalar value by a transformation matrix, resulting in a new transformation matrix that is the inverse of the original matrix scaled by the scalar. If the determinant of the matrix is zero, returns the Error matrix.
+  /// </summary>
+  /// <param name="scalar">The scalar value.</param>
+  /// <param name="matrix">The transformation matrix.</param>
+  /// <returns>The quotient of the scalar and the transformation matrix.</returns>
+  public static TransformationMatrix operator /(double scalar, TransformationMatrix matrix) {
+    if (matrix.Determinant == 0) {
+      return Error;
+    }
+
+    double invDet = scalar / matrix.Determinant;
+
+    double a11 = matrix.A22 * invDet;
+    double a12 = -matrix.A12 * invDet;
+    double a21 = -matrix.A21 * invDet;
+    double a22 = matrix.A11 * invDet;
+
+    double a13 = (matrix.A12 * matrix.A23 - matrix.A22 * matrix.A13) * invDet;
+    double a23 = (matrix.A21 * matrix.A13 - matrix.A11 * matrix.A23) * invDet;
+
+    return new TransformationMatrix(a11, a12, a13, a21, a22, a23);
+  }
+
+  /// <summary>
+  /// Divides one transformation matrix by another, resulting in a new transformation matrix that represents the combined effect of the first matrix followed by the inverse of the second matrix. If the determinant of the second matrix is zero, returns the Error matrix.
+  /// </summary>
+  /// <param name="left">The left transformation matrix.</param>
+  /// <param name="right">The right transformation matrix.</param>
+  /// <returns>The quotient of the two transformation matrices.</returns>
+  public static TransformationMatrix operator /(TransformationMatrix left, TransformationMatrix right) {
+    return left * right.Inverse();
+  }
+
+  /// <summary>
+  /// Determines whether two <see cref="TransformationMatrix"/> instances are equal.
+  /// </summary>
+  /// <param name="left">The left transformation matrix.</param>
+  /// <param name="right">The right transformation matrix.</param>
+  /// <returns>True if the two transformation matrices are equal; otherwise, false.</returns>
+  public static bool operator ==(TransformationMatrix left, TransformationMatrix right) {
+    return left.Equals(right);
+  }
+
+  /// <summary>
+  /// Determines whether two <see cref="TransformationMatrix"/> instances are not equal.
+  /// </summary>
+  /// <param name="left">The left transformation matrix.</param>
+  /// <param name="right">The right transformation matrix.</param>
+  /// <returns>True if the two transformation matrices are not equal; otherwise, false.</returns>
+  public static bool operator !=(TransformationMatrix left, TransformationMatrix right) {
+    return !left.Equals(right);
+  }
+
+  #endregion Operators
 
   #region IEquatable<TransformationMatrix>
 
