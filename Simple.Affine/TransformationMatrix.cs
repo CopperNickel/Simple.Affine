@@ -5,7 +5,7 @@ namespace Simple.Affine;
 /// <summary>
 /// Represents a 2D affine transformation matrix.
 /// </summary>
-public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
+public readonly struct TransformationMatrix : IEquatable<TransformationMatrix>, IFormattable {
   #region Properties
 
   /// <summary>
@@ -191,14 +191,6 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
     return new TransformationMatrix(a11, a12, a13, a21, a22, a23);
   }
 
-  /// <summary>
-  /// Returns a string representation of the transformation matrix.
-  /// </summary>
-  /// <returns>String representation of the transformation matrix.</returns>
-  public override string ToString() {
-    return $"[{A11}, {A12}, {A13}; {A21}, {A22}, {A23}]";
-  }
-
   #endregion Public Methods
 
   #region Operators
@@ -351,4 +343,26 @@ public readonly struct TransformationMatrix : IEquatable<TransformationMatrix> {
   public override int GetHashCode() => HashCode.Combine(A11, A12, A13, A21, A22, A23);
 
   #endregion IEquatable<TransformationMatrix>
+
+  #region IFormattable
+  /// <summary>
+  /// Returns a string representation of the transformation matrix, formatted according to the specified format and format provider.
+  /// </summary>
+  /// <param name="format">A standard or custom numeric format string.</param>
+  /// <param name="formatProvider">An object that provides culture-specific formatting information.</param>
+  /// <returns>A string representation of the transformation matrix.</returns>
+  public string ToString(string? format, IFormatProvider? formatProvider) {
+    return $"[{A11.ToString(format, formatProvider)}, {A12.ToString(format, formatProvider)}, {A13.ToString(format, formatProvider)}; " +
+           $"{A21.ToString(format, formatProvider)}, {A22.ToString(format, formatProvider)}, {A23.ToString(format, formatProvider)}]";
+  }
+
+  /// <summary>
+  /// Returns a string representation of the transformation matrix.
+  /// </summary>
+  /// <returns>String representation of the transformation matrix.</returns>
+  public override string ToString() {
+    return $"[{A11}, {A12}, {A13}; {A21}, {A22}, {A23}]";
+  }
+
+  #endregion IFormattable
 }
